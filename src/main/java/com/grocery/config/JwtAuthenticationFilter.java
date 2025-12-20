@@ -39,6 +39,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     @Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
 			FilterChain filterChain) throws IOException, ServletException{
+
+        String method = request.getMethod();
+        // 1. Wrap the request only if it's POST/PUT and hits the protected admin/products path
+        if (("POST".equals(method) || "PUT".equals(method)) &&
+                request.getRequestURI().contains("/api/admin/products")) {
+            // Wrap the original request
+            request = new CachedBodyHttpServletRequest(request);
+        }
+
         //1. Get Custom header
 		final String jwtToken = request.getHeader("user-payload");
         System.out.println("Reqest heder: "+ jwtToken);

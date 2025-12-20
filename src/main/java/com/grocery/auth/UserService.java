@@ -1,7 +1,6 @@
 package com.grocery.auth;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.domain.Page;
@@ -23,12 +22,9 @@ public class UserService {
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
-    }
     public User getByEmail(String email) {
-        return userRepository.findByEmail(email).
-                orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
     // create user by User self Registration

@@ -30,6 +30,7 @@ public class FileStorageService {
 			}
 			
 			Path filePath = uploadPath.resolve(fileName);
+            System.out.println("Attempting to save file to: " + filePath.toAbsolutePath()); // <-- CRITICAL DEBUG
 			Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 			
 			return "/images/" + fileName; //URL to be return to Frontend

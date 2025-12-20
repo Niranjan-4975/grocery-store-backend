@@ -5,13 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
-
 import com.grocery.common.JwtUtility;
-
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,14 +21,12 @@ public class AuthController {
 		this.userService = userService;
 		this.jwtUtility = jwtUtility;
 	}
-	
-	
+
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody LoginRequest request){
         System.out.println("Contoroller");
         // 1. Find User
-		User user = userService.findByEmail(request.getEmail())
-				.orElseThrow(() -> new BadCredentialsException("User not found"));
+		User user = userService.getByEmail(request.getEmail());
         //2. Validate Password
 		if(!userService.checkPassword(request.getPassword(),user.getPasswordHash())) {
             // Throw exception here for consistency:
@@ -59,22 +52,18 @@ public class AuthController {
 	}
 
     @GetMapping("/check")
-    public ResponseEntity<Map<String, Object>> checkTokenValidity(Authentication authentication){
+    public ResponseEntity<?> checkTokenValidity(Authentication authentication){
         // When this method is executed, Spring Security guarantees:
         // 1. The token was valid (signature check passed).
         // 2. The token was not expired (expiry check passed).
         // 3. The user principal (Authentication object) is available.
-
-        // We return a simple confirmation and the user's principal name (email) and roles.
-        // NOTE: The roles are typically accessible via authentication.getAuthorities()
-        //1.Extract roles and convert to list
-        List<String> roles = authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-        Map<String, Object> response = new HashMap<>();
-        response.put("email", authentication.getName());
-        response.put("roles", roles);
-        //Return the map
-        return ResponseEntity.ok(response);
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is invalid or expired. Please login again.");
+        }
+        return ResponseEntity.ok(Map.of(
+                "message", "Token is valid.",
+                "email", authentication.getName(),
+                "roles", authentication.getAuthorities().stream().map(grantedAuthority -> grantedAuthority).toList()
+        ));
     }
 }

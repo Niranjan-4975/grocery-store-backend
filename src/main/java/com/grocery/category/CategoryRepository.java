@@ -12,11 +12,17 @@ import com.grocery.common.Status;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long>{
 
-	boolean existsByNameIgnoreCase(String name);
+    // Check if any category exists with this name, but NOT this ID
+    @Query("""
+            SELECT CASE WHEN COUNT(c) > 0 THEN TRUE ELSE FALSE END 
+            FROM Category c 
+            WHERE LOWER(c.name) = LOWER(:name) AND c.id <> :id
+            """)
+    boolean existsByNameIgnoreCaseAndNotId(@Param("name") String name, @Param("id") Long id);
 
+    boolean existsByNameIgnoreCase(String name);
 	//List only Active Categories (for customer)
 	List<Category> findByStatus(Status status);
-
 
 	// Search + Filter (for admin)
 	@Query("""
@@ -24,6 +30,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long>{
 			WHERE
 				(:search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))
 			AND (:status IS NULL OR c.status = :status)
+			AND c.status <> com.grocery.common.Status.DELETED
 			""")
 	List<Category> searchCategories(
 			@Param("search") String search,

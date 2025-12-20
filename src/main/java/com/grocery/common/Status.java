@@ -4,5 +4,6 @@ public enum Status {
 	
 	ACTIVE,
 	INACTIVE,
-	OUT_OF_STOCK
+    DELETED,
+    OUT_OF_STOCK
 }

@@ -19,26 +19,26 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "product_variants")
 public class ProductVariant {
-	
+
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "product_id", nullable = false)
 	private Product product;
-	
-	
+
+
 	private String variantName;
 	@Column(unique = true)
 	private String sku;
 	private BigDecimal price;
 	private Integer stock;
-	
+
 	@CreationTimestamp
 	private Instant createdAt;
 	@UpdateTimestamp
 	private Instant updatedAt;
-	
+
 	public Long getId() {
 		return id;
 	}
