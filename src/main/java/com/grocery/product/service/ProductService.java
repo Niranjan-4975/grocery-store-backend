@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Service
 @NoArgsConstructor
 @AllArgsConstructor
@@ -44,6 +46,8 @@ public class ProductService {
         product.setStock(request.getStock());
         product.setCategory(category);
         product.setStatus(Status.valueOf(request.getStatus()));
+        // ✅ Mapping isFeatured from request (Make sure to add this in DTO later)
+        product.setFeatured(request.isFeatured());
 
         String imageUrl = null;
         if (file !=null && !file.isEmpty()){
@@ -76,6 +80,8 @@ public class ProductService {
         if (request.getStock() != null) product.setStock(request.getStock());
         if (request.getStatus() != null) product.setStatus(Status.valueOf(request.getStatus()));
         if (request.getImageUrl() != null) product.setImageUrl(imageUrl);
+        // ✅ Add this for featured toggle
+        product.setFeatured(request.isFeatured());
 
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
@@ -84,8 +90,7 @@ public class ProductService {
         }
         return productRepository.save(product);
     }
-    
-    
+
     // Delete Product
     public void deleteProduct(Long id) {
     	if (!productRepository.existsById(id)) {
@@ -93,15 +98,13 @@ public class ProductService {
     	}
     	productRepository.deleteById(id);
     }
-    
-    
+
     // ➤ Get Single Product by Id 
     public Product getProduct(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
     }
-    
-    
+
     // List Products (Customer)
     // ➤ Get All Products with Search + Filter + Pagination
     public Page<Product> listActiveProducts(String search, Long categoryId, Pageable pageable) {
@@ -110,20 +113,28 @@ public class ProductService {
     	if (categoryId != null && categoryId == 0L) categoryId = null;
     	return productRepository.searchActiveProducts(search, categoryId, pageable);
     }
-    
-    
+
     //List Products (Admin)
     public Page<Product> listAllProducts(String search, Long categoryId, Pageable pageable){
     	
     	if (search == null) search = "";
     	return productRepository.searchAllProducts(search, categoryId, pageable);
     }
-	
-    
+
     public Product updateImage(Long id, String imageUrl) {
     	
     	Product product = productRepository.getReferenceById(id);
     	product.setImageUrl(imageUrl);
     	return productRepository.save(product);
+    }
+
+    // ✅ Home page ke liye Featured Products (Customer Side)
+    public List<Product> getFeaturedProducts() {
+        return productRepository.findByIsFeaturedTrueAndStatus(Status.ACTIVE);
+    }
+
+    // ✅ Home page main grid ke liye bina search filter ke list (Optional)
+    public Page<Product> getPublicProducts(Pageable pageable) {
+        return productRepository.findByStatus(Status.ACTIVE, pageable);
     }
 }

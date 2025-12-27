@@ -24,6 +24,7 @@ public class ProductCreateRequest {
 	@NotNull(message = "Category ID is required")
 	private Long categoryId;
 	private String imageUrl;
+    private boolean featured;
 	@NotNull
 	private String status;
 }

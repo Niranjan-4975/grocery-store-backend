@@ -1,5 +1,6 @@
 package com.grocery.product.repository;
 
+import com.grocery.common.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,10 +10,11 @@ import org.springframework.stereotype.Repository;
 
 import com.grocery.product.Product;
 
+import java.util.List;
+
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>{
-	
-	
+
 	// BASIC Search + Category filter + Status = ACTIVE
     @Query("""
         SELECT p FROM Product p
@@ -26,8 +28,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>{
             @Param("categoryId") Long categoryId,
             Pageable pageable
     );
-    
-    
+
     // ADMIN: All products (both ACTIVE & INACTIVE)
     @Query("""
         SELECT p FROM Product p
@@ -40,4 +41,14 @@ public interface ProductRepository extends JpaRepository<Product, Long>{
             @Param("categoryId") Long categoryId,
             Pageable pageable
     );
+
+    //ADMIN: Stats and Reports
+    //Spring Data JPA magic method (Automatic Query)
+    List<Product> findByStockLessThan(Integer stock);
+
+    // ✅ FEATURED: Home page featured section ke liye
+    List<Product> findByIsFeaturedTrueAndStatus(Status status);
+
+    // ✅ PUBLIC: Home page main grid ke liye (bina search ke)
+    Page<Product> findByStatus(Status status, Pageable pageable);
 }

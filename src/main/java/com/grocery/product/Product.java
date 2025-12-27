@@ -42,6 +42,8 @@ public class Product {
 	@Column(nullable = false)
 	private Integer stock;
 	private String imageUrl;
+    @Column(nullable = false)
+    private boolean isFeatured = false;
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private Status status;
@@ -56,6 +58,7 @@ public class Product {
 		createdAt = LocalDateTime.now();
 		updatedAt = LocalDateTime.now();
 		status = Status.ACTIVE;
+        this.isFeatured = false;
 	}
 	@PreUpdate
 	public void onUpdate() {

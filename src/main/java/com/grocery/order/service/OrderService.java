@@ -10,6 +10,8 @@ import com.grocery.order.repository.OrderRepository;
 import com.grocery.product.Product;
 import com.grocery.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,13 +74,13 @@ public class OrderService {
     }
 
     // Customer: view my own order history
-    public List<Order> myOrders(Long id) {
+    public List<Order> getOrdersById(Long id) {
         return orderRepository.findByUserId(id);
     }
 
     // ADMIN: Find all orders
-    public List<Order> findAllOrders() {
-        return orderRepository.findAll();
+    public Page<Order> findAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable);
     }
 
     // ADMIN: Update Order Status

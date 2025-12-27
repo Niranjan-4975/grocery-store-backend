@@ -3,6 +3,8 @@ package com.grocery.category;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.grocery.category.dto.CategoryCreateRequest;
@@ -48,10 +50,10 @@ public class CategoryService {
 	}
 	
 	// Admin: get all categories
-	public List<Category> listAll(String search, Status status){
+	public Page<Category> listAll(String search, Status status, Pageable pageable){
 		
 		if (search == null) search = "";
-		return categoryRepository.searchCategories(search, status);
+		return categoryRepository.searchCategories(search, status, pageable);
 	}
 
 	// Customer: get only Active categories

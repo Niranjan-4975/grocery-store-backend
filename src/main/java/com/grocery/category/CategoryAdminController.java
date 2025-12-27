@@ -2,6 +2,9 @@ package com.grocery.category;
 
 import com.grocery.common.Status;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -30,11 +33,14 @@ public class CategoryAdminController {
 
     // Admin read all (List with optional Search/Filter)
     @GetMapping
-    public ResponseEntity<List<Category>> listAllCategories(
+    public ResponseEntity<Page<Category>> listAllCategories(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "0") int page,      // ✅ New
+            @RequestParam(defaultValue = "10") int size,     // ✅ New
             Authentication authentication) {
-        return ResponseEntity.ok(categoryService.listAll(search,status));
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(categoryService.listAll(search,status, pageable));
     }
 
     // Admin update

@@ -20,13 +20,20 @@ public class ProductController {
 		this.productService = productService;
 	}
 
+
+    // 🌟 1. GET FEATURED PRODUCTS (Home Page Slider)
+    @GetMapping("/featured")
+    public ResponseEntity<?> getFeaturedProducts() {
+        return ResponseEntity.ok(productService.getFeaturedProducts());
+    }
+
 	// GET ACTIVE PRODUCTS (CUSTOMER)
 	@GetMapping("/getProducts")
 	public ResponseEntity<?> getActiveProducts(
             @RequestParam(defaultValue = "") String search,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "12") int size) {
 		Pageable pageable = PageRequest.of(page, size);
 		return ResponseEntity.ok(productService.listActiveProducts(search, categoryId, pageable));
 	}
