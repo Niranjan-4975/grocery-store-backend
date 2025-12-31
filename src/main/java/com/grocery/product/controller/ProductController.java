@@ -40,7 +40,8 @@ public class ProductController {
 
 	@GetMapping("/getProducts/{id}")
 	public ResponseEntity<?> getProductById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            Authentication authentication) {
 		return ResponseEntity.ok(productService.getProduct(id));
 	}
 

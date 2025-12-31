@@ -19,7 +19,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>{
     @Query("""
         SELECT p FROM Product p
         WHERE
-            (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))
+            (:search IS NULL OR 
+                LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR 
+                LOWER(p.category.name) LIKE LOWER(CONCAT('%', :search, '%'))
+            )
         AND (:categoryId IS NULL OR p.category.id = :categoryId)
         AND p.status = com.grocery.common.Status.ACTIVE
    """)
