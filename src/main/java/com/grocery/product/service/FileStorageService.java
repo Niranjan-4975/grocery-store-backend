@@ -3,6 +3,7 @@ package com.grocery.product.service;
 import java.io.IOException;
 import java.nio.file.*;
 
+import com.grocery.exception.FileStorageException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -18,11 +19,10 @@ public class FileStorageService {
 	public String saveFile(MultipartFile file) {
 		try {
 			if (file.isEmpty()) {
-				throw new RuntimeException("File is empty");
+				throw new FileStorageException("Failed to store empty file.");
 			}
 			
 			String fileName =  System.currentTimeMillis() + "_" + StringUtils.cleanPath(file.getOriginalFilename());
-			
 			Path uploadPath = Paths.get(uploadDir);
 			
 			if (!Files.exists(uploadPath)) {
@@ -30,14 +30,13 @@ public class FileStorageService {
 			}
 			
 			Path filePath = uploadPath.resolve(fileName);
-            System.out.println("Attempting to save file to: " + filePath.toAbsolutePath()); // <-- CRITICAL DEBUG
 			Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 			
 			return "/images/" + fileName; //URL to be return to Frontend
 			
 			
 		} catch (IOException e) {
-			throw new RuntimeException("Error storing file: "+ e.getMessage());
+			throw new FileStorageException("Could not store file. Error: "+ e.getMessage());
 		}
 	}
 

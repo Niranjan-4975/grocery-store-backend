@@ -1,5 +1,6 @@
 package com.grocery.reports;
 
+import com.grocery.common.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,11 +16,12 @@ public class DashBoardController {
     private DashBoardService dashBoardService;
 
     @GetMapping("/stats")
-    public ResponseEntity<?> getDashboardStas(
+    public ResponseEntity<ApiResponse<DashBoardDTO>> getDashboardStas(
             @RequestParam(defaultValue = "7") String range,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
-        return ResponseEntity.ok(dashBoardService.getStats(range,startDate, endDate));
+        DashBoardDTO stats = dashBoardService.getStats(range, startDate, endDate);
+        return ResponseEntity.ok(ApiResponse.success(null, stats));
     }
 
     @GetMapping("/reports/export-full")
@@ -27,10 +29,8 @@ public class DashBoardController {
             @RequestParam(defaultValue = "7") String range,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) throws Exception {
-
         // 1. Fetch the same data used by the dashboard
         DashBoardDTO stats = dashBoardService.getStats(range, startDate, endDate);
-
         // 2. Generate PDF with charts
         byte[] pdfContent =dashBoardService.generateFullAnalysisPdf(stats);
         return ResponseEntity.ok()
@@ -38,5 +38,4 @@ public class DashBoardController {
                 .header("Content-Disposition", "attachment; filename=Full_Analysis_Report.pdf")
                 .body(pdfContent);
     }
-
 }

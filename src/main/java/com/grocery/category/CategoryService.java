@@ -2,6 +2,8 @@ package com.grocery.category;
 
 import java.util.List;
 
+import com.grocery.exception.CategoryAlreadyExistsException;
+import com.grocery.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +24,7 @@ public class CategoryService {
 	public Category createCategory(CategoryCreateRequest request) {
 		
 		if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
-			throw new RuntimeException("Category Already Exists");
+			throw new CategoryAlreadyExistsException("Category '"+request.getName()+"' Already Exists");
 		}
 		Category category = new Category();
 		category.setName(request.getName());
@@ -36,11 +38,10 @@ public class CategoryService {
 	public Category updateCategory(Long id, CategoryUpdateRequest request) {
 		
 		Category category = categoryRepository.findById(id).orElseThrow(
-				() -> new RuntimeException("Category Not Found"));
-		
-		//✅ Use the new repository method that checks name against all IDs EXCEPT the current one.
+                () -> new ResourceNotFoundException("Category not found with ID: " + id));
+
         if (categoryRepository.existsByNameIgnoreCaseAndNotId(request.getName(), id)) {
-            throw new RuntimeException("Category name already exists");
+            throw new CategoryAlreadyExistsException("Category name '" + request.getName() + "' is already taken");
         }
 		category.setName(request.getName());
 		category.setDescription(request.getDescription());
@@ -65,7 +66,7 @@ public class CategoryService {
     public void deleteCategory(Long id) {
         // Soft Delete: Sets status to DELETED
         Category category = categoryRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Category Not Found for deletion"));
+                () -> new ResourceNotFoundException("Cannot delete: Category not found with ID: " + id));
         category.setStatus(Status.DELETED); // Assuming Status enum includes DELETED
         categoryRepository.save(category);
     }

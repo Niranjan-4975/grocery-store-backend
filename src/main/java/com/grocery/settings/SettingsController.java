@@ -1,5 +1,6 @@
 package com.grocery.settings;
 
+import com.grocery.common.ApiResponse;
 import com.grocery.reports.DashBoardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,12 +14,15 @@ public class SettingsController {
     private DashBoardService dashBoardService;
 
     @GetMapping
-    public ResponseEntity<?> getSettings() {
-        return ResponseEntity.ok(dashBoardService.getSettings());
+    public ResponseEntity<ApiResponse<AdminSettings>> getSettings() {
+        AdminSettings settings = dashBoardService.getSettings();
+        return ResponseEntity.ok(ApiResponse.success(null,settings));
     }
 
     @PutMapping
-    public ResponseEntity<?> updateSettings(@RequestBody AdminSettings settings){
-        return ResponseEntity.ok(dashBoardService.saveSettings(settings));
+    public ResponseEntity<ApiResponse<AdminSettings>> updateSettings(
+            @RequestBody AdminSettings settings){
+        AdminSettings upsettings = dashBoardService.saveSettings(settings);
+        return ResponseEntity.ok(ApiResponse.success("System settings updated successfully!", upsettings));
     }
 }

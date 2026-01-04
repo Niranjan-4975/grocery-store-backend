@@ -3,6 +3,9 @@ package com.grocery.auth;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.grocery.exception.ResourceNotFoundException;
+import com.grocery.exception.UnauthorizedAccessException;
+import com.grocery.exception.UserAlreadyExistsException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,13 +27,13 @@ public class UserService {
 
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
     // create user by User self Registration
     public String register(RegistrationRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new UserAlreadyExistsException("Email '"+ request.getEmail()+ "' is already in use");
         }
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         Set<Role> roles = new HashSet<>();
@@ -45,18 +48,18 @@ public class UserService {
         user.setPinCode(request.getPinCode());
         user.setRoles(roles);
         userRepository.save(user);
-        return "User created successfully!!";
+        return "";
     }
 
     // create User by Admin
     public User createUserAsAdmin(AdminCreateRequest request, User currentAdmin) {
         //Only Admin Allowed
         if (!currentAdmin.getRoles().contains(Role.ROLE_ADMIN)) {
-            throw new RuntimeException("Only Admins can create users");
+            throw new UnauthorizedAccessException("Permission denied: Only Admins can create users");
         }
         //Check email exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new UserAlreadyExistsException("Email already in use");
         }
         System.out.println("Admin Request :"+request);
         // Hash Password
@@ -90,7 +93,8 @@ public class UserService {
 
     // Get User by I'd for Admin
     public User getUserById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
     // Get Users for Admin
@@ -108,19 +112,19 @@ public class UserService {
 
     // Update for Admin and User both
     public User updateUser(Long id, UpdateUserRequest request, User current) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         boolean isAdmin = current.getRoles().contains(Role.ROLE_ADMIN);
         //User Allowed filed update
         // 3. Permission Check: If not admin, ensure they are updating their own ID
         if (!isAdmin && !current.getId().equals(id)) {
-            throw new RuntimeException("You can update only your own profile");
+            throw new UnauthorizedAccessException("You are not allowed to update this profile");
         }
         // --- 4. COMMON UPDATES (Allowed for Everyone) ---
         // This logic runs for both Admin and Customer
         if (request.getFullName() != null) user.setFullName(request.getFullName());
         if (request.getMobile() != null) user.setMobile(request.getMobile());
         if (request.getAddressLine() != null) user.setAddressLine(request.getAddressLine());
-        // ✅ NEW FIELDS ADDED
         if (request.getCity() != null) user.setCity(request.getCity());
         if (request.getPinCode() != null) user.setPinCode(request.getPinCode());
         // --- 5. RESTRICTED UPDATES (Admin Only) ---
@@ -140,8 +144,6 @@ public class UserService {
                 user.setRoles(updatedRoles);
             }
         }
-        // Note: If a non-admin sent 'email' or 'role', we simply ignored it above.
-        // No exception is thrown.
         return userRepository.save(user);
     }
 
@@ -149,19 +151,20 @@ public class UserService {
     // Delete user by id for Admin
     public void deleteUser(Long id, User currentAdmin) {
         if (!currentAdmin.getRoles().contains(Role.ROLE_ADMIN)) {
-            throw new RuntimeException("Only Admin can delete user");
+            throw new UnauthorizedAccessException("Only Admin can delete user");
         }
         if (currentAdmin.getId().equals(id)) {
             throw new RuntimeException("Admin cannot delete their own account");
         }
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
     }
 
     public void resetPasswordForUser(Long userId, String newPassword) {
         // 1. Find the user to be reset
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         // 2. Hash the new temporary password
         String newHashedPassword = passwordEncoder.encode(newPassword);
         // 3. Update the user's password field

@@ -1,6 +1,8 @@
 package com.grocery.product.controller;
 
+import com.grocery.common.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -9,8 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.grocery.auth.Role;
-import com.grocery.common.JwtUtility;
 import com.grocery.product.Product;
 import com.grocery.product.dto.ProductCreateRequest;
 import com.grocery.product.dto.ProductUpdateRequest;
@@ -25,77 +25,66 @@ public class AdminProductController {
 
 	@Autowired
 	private ProductService productService;
-	@Autowired
-	private JwtUtility jwtUtility;
-	@Autowired
+    @Autowired
 	private FileStorageService fileStorageService;
 
 	@PostMapping
-	public ResponseEntity<?> createProduct(
+	public ResponseEntity<ApiResponse<Product>> createProduct(
             @RequestBody @Valid ProductCreateRequest request,
             Authentication authentication){
-        System.out.println("Post called");
-        // Note: We are creating the product without an image initially.
 		Product created = productService.createProduct(request, null);
-		return ResponseEntity.ok(created);
+		return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Product added successfully!", created));
 	}
 
 
 	@PutMapping("/{id}")
-	public ResponseEntity<?> updateProduct(
+	public ResponseEntity<ApiResponse<Product>> updateProduct(
 			@PathVariable Long id,
             @RequestBody ProductUpdateRequest request,
             Authentication authentication){
-        System.out.println("Put called");
 		Product updated = productService.updateProduct(id, request, null);
-		return ResponseEntity.ok(updated);
+		return ResponseEntity.ok(ApiResponse.success("Product updated successfully!",updated));
 	}
 
 
 	@DeleteMapping("/{id}")
-	public ResponseEntity<?> deleteProduct(
+	public ResponseEntity<ApiResponse<Void>> deleteProduct(
             @PathVariable Long id,
             Authentication authentication) {
-
 		productService.deleteProduct(id);
-		return ResponseEntity.ok("Product deleted successfully");
+		return ResponseEntity.ok(ApiResponse.success("Product removed from inventory",null));
 	}
 
 	// GET ALL PRODUCTS (ADMIN)
     @GetMapping
-    public ResponseEntity<?> getAllProducts(
+    public ResponseEntity<ApiResponse<Page<Product>>> getAllProducts(
     		@RequestParam(defaultValue = "") String search,
     		@RequestParam(required = false) Long categoryId,
     		@RequestParam(defaultValue = "0") int page,
     		@RequestParam(defaultValue = "10") int size,
     		Authentication authentication) {
     	Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(productService.listAllProducts(search, categoryId, pageable));
+        Page<Product> products = productService.listAllProducts(search, categoryId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(null,products));
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<?> getProductById(@RequestParam Long id,
-    		@RequestHeader("user-payload") String token) {
-    	
-    	var roles = jwtUtility.extractRoles(token);
-
-		if (roles == null || !roles.contains(Role.ROLE_ADMIN)) {
-			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Only Admins can access this data");
-		}
-    	
-    	return ResponseEntity.ok(productService.getProduct(id));
+    public ResponseEntity<ApiResponse<Product>> getProductById(@RequestParam Long id){
+    	Product product = productService.getProduct(id);
+    	return ResponseEntity.ok(ApiResponse.success(null,product));
     }
 
-    // AdminProductController.java (CORRECTED uploadProductImage)
+
     @PostMapping("/images/product/{id}")
-    public ResponseEntity<?> uploadProductImage(
+    public ResponseEntity<ApiResponse<Product>> uploadProductImage(
             @PathVariable Long id,
             @RequestPart("file") MultipartFile file,
             Authentication authentication){
 
         String imageUrl = fileStorageService.saveFile(file);
         Product updated = productService.updateImage(id, imageUrl);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(ApiResponse.success("Product image added successfully!",updated));
     }
     
 }
