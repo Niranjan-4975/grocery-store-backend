@@ -1,5 +1,6 @@
 package com.grocery.user.controller;
 
+import com.grocery.common.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,22 +19,19 @@ public class ProfileController {
 
     //1. Get Profile
 	@GetMapping("/me")
-	public ResponseEntity<User> getMyProfile(Authentication authentication){
-		String email = authentication.getName();
-		User user = userService.getByEmail(email);
-		return ResponseEntity.ok(user);
+	public ResponseEntity<ApiResponse<User>> getMyProfile(Authentication authentication){
+		User user = userService.getByEmail(authentication.getName());
+		return ResponseEntity.ok(ApiResponse.success(null,user));
 	}
 
     //2. Update Profile
 	@PutMapping("/update-profile")
-	public ResponseEntity<?> updateOwnProfile(
+	public ResponseEntity<ApiResponse<Void>> updateOwnProfile(
 			@RequestBody UpdateUserRequest req,
             Authentication authentication){
-		
-		String email = authentication.getName();
-		User current = userService.getByEmail(email);
+		User current = userService.getByEmail(authentication.getName());
 		userService.updateUser(current.getId(), req, current);
-		return ResponseEntity.ok("Profile updated successfully");
+		return ResponseEntity.ok(ApiResponse.success("Profile updated successfully",null));
 	}
 
 }

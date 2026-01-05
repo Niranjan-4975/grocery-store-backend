@@ -1,5 +1,6 @@
 package com.grocery.product.service;
 
+import com.grocery.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,7 +38,7 @@ public class ProductService {
 		
 		//validate Category
 		Category category = categoryRepository.findById(request.getCategoryId())
-				.orElseThrow(() -> new RuntimeException("Invalid Category Id"));
+				.orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
 
 		Product product = new Product();
 		product.setName(request.getName());
@@ -62,7 +63,7 @@ public class ProductService {
     public Product updateProduct(Long id, ProductUpdateRequest request, MultipartFile file) {
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: "+id));
         // --- Image Handling Logic ---
         String imageUrl = product.getImageUrl();
         // 1. If a new file is uploaded, process it
@@ -80,12 +81,11 @@ public class ProductService {
         if (request.getStock() != null) product.setStock(request.getStock());
         if (request.getStatus() != null) product.setStatus(Status.valueOf(request.getStatus()));
         if (request.getImageUrl() != null) product.setImageUrl(imageUrl);
-        // ✅ Add this for featured toggle
         product.setFeatured(request.isFeatured());
 
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Invalid category"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
             product.setCategory(category);
         }
         return productRepository.save(product);
@@ -94,7 +94,7 @@ public class ProductService {
     // Delete Product
     public void deleteProduct(Long id) {
     	if (!productRepository.existsById(id)) {
-    		throw new RuntimeException("Product not found");
+    		throw new ResourceNotFoundException("Cannot delete: Product not found with ID: " + id);
     	}
     	productRepository.deleteById(id);
     }
@@ -102,7 +102,7 @@ public class ProductService {
     // ➤ Get Single Product by Id 
     public Product getProduct(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
     }
 
     // List Products (Customer)

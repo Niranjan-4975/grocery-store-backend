@@ -1,6 +1,8 @@
 package com.grocery.order.service;
 
 import com.grocery.auth.User;
+import com.grocery.exception.InsufficientStockException;
+import com.grocery.exception.ResourceNotFoundException;
 import com.grocery.order.Order;
 import com.grocery.order.OrderItem;
 import com.grocery.order.OrderStatus;
@@ -47,10 +49,11 @@ public class OrderService {
         //1. Process each item in the request
         for (OrderRequest.OrderItemRequest itemReq : request.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found :" + itemReq.getProductId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + itemReq.getProductId()));
             //2. Check and update stock
             if (product.getStock() < itemReq.getQuantity()) {
-                throw new RuntimeException("Insuficient stock:" + product.getName());
+                throw new InsufficientStockException("Insufficient stock for product: " + product.getName()
+                +". Available: "+ product.getStock());
             }
             product.setStock(product.getStock() - itemReq.getQuantity());
             productRepository.save(product);
@@ -86,7 +89,7 @@ public class OrderService {
     // ADMIN: Update Order Status
     public Order updateOrderStatus(Long id,OrderStatus status) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: "+id));
         order.setStatus(status);
         return orderRepository.save(order);
     }

@@ -1,6 +1,6 @@
 package com.grocery.order.controller;
 
-import com.grocery.auth.UserRepository;
+import com.grocery.common.ApiResponse;
 import com.grocery.order.Order;
 import com.grocery.order.OrderStatus;
 import com.grocery.order.dto.BulkStatusRequest;
@@ -24,47 +24,46 @@ public class AdminOrderController {
     @Autowired
     private OrderService orderService;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     private OrderRepository orderRepository;
 
 
     @GetMapping("/all")
-    public ResponseEntity<Page<Order>> getAllOrdersForAdmin(
+    public ResponseEntity<ApiResponse<Page<Order>>> getAllOrdersForAdmin(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
             Authentication authentication){
         Pageable pageable = PageRequest.of(page,size, Sort.by("orderDate").descending());
-        if (search.isBlank())
-            return ResponseEntity.ok(orderService.findAllOrders(pageable));
-        return ResponseEntity.ok(orderRepository.searchOrders(search, pageable));
+        Page<Order> data = (search.isBlank())
+                ? orderService.findAllOrders(pageable)
+                : orderRepository.searchOrders(search, pageable);
+        return ResponseEntity.ok(ApiResponse.success(null, data));
     }
 
     // ADMIN: update one order status
     @PatchMapping("/{id}/status")
-    public ResponseEntity<?> updateStatus(
+    public ResponseEntity<ApiResponse<Order>> updateStatus(
             @PathVariable Long id,
             @RequestParam OrderStatus status,
             Authentication authentication){
-
-        return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
+        Order updatedOrder = orderService.updateOrderStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success("Order status updated to " + status, updatedOrder));
     }
 
     // ADMIN: Update Orders Multiple Status
     @PatchMapping("/bulk-status")
-    public ResponseEntity<?> bulkUpdateStatus(
+    public ResponseEntity<ApiResponse<Void>> bulkUpdateStatus(
             @RequestBody BulkStatusRequest request,
             Authentication authentication){
         orderService.updateMultipleOrdersStatus(request.getIds(), request.getStatus());
-        return ResponseEntity.ok("Orders updated Successfully");
+        return ResponseEntity.ok(ApiResponse.success(request.getIds().size()+ " Orders updated Successfully", null));
     }
 
     @GetMapping("user/{id}")
-    public ResponseEntity<List<Order>> getOrdersByUserId(
+    public ResponseEntity<ApiResponse<List<Order>>> getOrdersByUserId(
             @PathVariable Long id,
             Authentication authentication){
         List<Order> userOrders = orderService.getOrdersById(id);
-        return ResponseEntity.ok(userOrders);
+        return ResponseEntity.ok(ApiResponse.success(null,userOrders));
     }
 }

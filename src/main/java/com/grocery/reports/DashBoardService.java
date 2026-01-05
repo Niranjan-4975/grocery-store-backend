@@ -1,5 +1,6 @@
 package com.grocery.reports;
 
+import com.grocery.exception.ReportGenerationException;
 import com.grocery.order.repository.OrderRepository;
 import com.grocery.product.repository.ProductRepository;
 import com.grocery.settings.AdminSettings;
@@ -47,8 +48,14 @@ public class DashBoardService {
                 .map(p -> new DashBoardDTO.LowStockDTO(p.getName(), p.getCategory().getName(), p.getStock()))
                 .collect(Collectors.toList()));
 
-        // Range Logic
-        Integer days = range.equals("custom") ? null : Integer.parseInt(range);
+        Integer days = null;
+        if (!range.equals("custom")) {
+            try {
+                days = Integer.parseInt(range);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid range format: " + range);
+            }
+        }
         // 3. Sales Trend Mapping
         // Pass days/dates to Repository
         List<Object[]> trendData = (range.equals("custom"))
@@ -70,55 +77,58 @@ public class DashBoardService {
     }
 
     //ADMIN: Export report
-    public byte[] generateFullAnalysisPdf(DashBoardDTO stats) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Document document = new Document(PageSize.A4);
-        PdfWriter.getInstance(document, out);
-        document.open();
+    public byte[] generateFullAnalysisPdf(DashBoardDTO stats){
+        try(ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
 
-        // 1. Header Section
-        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, Color.BLUE);
-        Paragraph title = new Paragraph("Business Performance Analysis", titleFont);
-        title.setAlignment(Element.ALIGN_CENTER);
-        document.add(title);
-        document.add(new Paragraph("Generated on: " + java.time.LocalDate.now()));
-        document.add(new Paragraph(" "));
+            // 1. Header Section
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, Color.BLUE);
+            Paragraph title = new Paragraph("Business Performance Analysis", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph("Generated on: " + java.time.LocalDate.now()));
+            document.add(new Paragraph(" "));
 
-        // 2. Summary Cards Table (Revenue, Orders, etc.)
-        PdfPTable statsTable = new PdfPTable(4);
-        statsTable.setWidthPercentage(100);
-        addCell(statsTable, "Total Revenue", "₹" + stats.getTotalRevenue());
-        addCell(statsTable, "Total Orders", String.valueOf(stats.getTotalOrders()));
-        addCell(statsTable, "Items Sold", String.valueOf(stats.getTotalSales()));
-        addCell(statsTable, "Pending", String.valueOf(stats.getPendingOrders()));
-        document.add(statsTable);
-        document.add(new Paragraph(" "));
+            // 2. Summary Cards Table (Revenue, Orders, etc.)
+            PdfPTable statsTable = new PdfPTable(4);
+            statsTable.setWidthPercentage(100);
+            addCell(statsTable, "Total Revenue", "₹" + stats.getTotalRevenue());
+            addCell(statsTable, "Total Orders", String.valueOf(stats.getTotalOrders()));
+            addCell(statsTable, "Items Sold", String.valueOf(stats.getTotalSales()));
+            addCell(statsTable, "Pending", String.valueOf(stats.getPendingOrders()));
+            document.add(statsTable);
+            document.add(new Paragraph(" "));
 
-        // 3. PIE CHART: Best Sellers Analysis
-        document.add(new Paragraph("Best Selling Products Distribution", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        stats.getBestSellers().forEach(s -> dataset.setValue(s.getProduct(), s.getSoldQuantity()));
-        JFreeChart pieChart = ChartFactory.createPieChart("", dataset, true, true, false);
-        document.add(chartToImage(pieChart, 500, 300));
+            // 3. PIE CHART: Best Sellers Analysis
+            document.add(new Paragraph("Best Selling Products Distribution", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+            DefaultPieDataset dataset = new DefaultPieDataset();
+            stats.getBestSellers().forEach(s -> dataset.setValue(s.getProduct(), s.getSoldQuantity()));
+            JFreeChart pieChart = ChartFactory.createPieChart("", dataset, true, true, false);
+            document.add(chartToImage(pieChart, 500, 300));
 
-        // 4. DATA TABLE: Low Stock Alerts
-        document.add(new Paragraph(" "));
-        document.add(new Paragraph("Inventory Alerts (Low Stock)", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-        document.add(new Paragraph(""));
-        PdfPTable lowStockTable = new PdfPTable(3);
-        lowStockTable.setWidthPercentage(100);
-        lowStockTable.addCell("Product");
-        lowStockTable.addCell("Category");
-        lowStockTable.addCell("Stock");
+            // 4. DATA TABLE: Low Stock Alerts
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("Inventory Alerts (Low Stock)", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+            document.add(new Paragraph(""));
+            PdfPTable lowStockTable = new PdfPTable(3);
+            lowStockTable.setWidthPercentage(100);
+            lowStockTable.addCell("Product");
+            lowStockTable.addCell("Category");
+            lowStockTable.addCell("Stock");
 
-        for (DashBoardDTO.LowStockDTO p : stats.getLowStockProducts()) {
-            lowStockTable.addCell(p.getName());
-            lowStockTable.addCell(p.getCategory());
-            lowStockTable.addCell(String.valueOf(p.getStock()));
+            for (DashBoardDTO.LowStockDTO p : stats.getLowStockProducts()) {
+                lowStockTable.addCell(p.getName());
+                lowStockTable.addCell(p.getCategory());
+                lowStockTable.addCell(String.valueOf(p.getStock()));
+            }
+            document.add(lowStockTable);
+            document.close();
+            return out.toByteArray();
+        }catch (Exception e){
+            throw new ReportGenerationException("Failed to generate PDF report due to: " + e.getMessage(), e);
         }
-        document.add(lowStockTable);
-        document.close();
-        return out.toByteArray();
     }
 
     // Helper: Convert JFreeChart to iText Image

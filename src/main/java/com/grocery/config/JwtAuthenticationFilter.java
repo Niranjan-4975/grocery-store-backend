@@ -42,24 +42,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
         String method = request.getMethod();
         // 1. Wrap the request only if it's POST/PUT and hits the protected admin/products path
-        if (("POST".equals(method) || "PUT".equals(method)) &&
-                request.getRequestURI().contains("/api/admin/products")) {
-            // Wrap the original request
-            request = new CachedBodyHttpServletRequest(request);
-        }
+//        if (("POST".equals(method) || "PUT".equals(method)) &&
+//                request.getRequestURI().contains("/api/admin/products")) {
+//            // Wrap the original request
+//            request = new CachedBodyHttpServletRequest(request);
+//        }
 
         //1. Get Custom header
 		final String jwtToken = request.getHeader("user-payload");
-        System.out.println("Reqest heder: "+ jwtToken);
         String email = null;
         //2. Check If token exists and Not blank
         if(jwtToken != null && !jwtToken.isBlank()){
             try{
                 email = jwtUtility.extractEmail(jwtToken);
-                System.out.println("Extract email: "+ email);
             } catch (ExpiredJwtException e){
-                System.out.println(e.getMessage());
-                System.out.println("Token Parsing Failed: " + e.getMessage()); // Debug Error
+                e.getMessage();
             }
         }
 		//3. Validate and authenticate user
@@ -67,10 +64,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 			User user = userRepository.findByEmail(email).orElse(null);
 			if (user != null && jwtUtility.validateToken(jwtToken, user.getEmail())) {
 				List<String> roles = jwtUtility.extractRoles(jwtToken);
-                System.out.println("Extracted role: "+ roles);
-//				List<GrantedAuthority> authorities = roles.stream()
-//						.map(SimpleGrantedAuthority::new).collect(Collectors.toList());
-//                System.out.println("authorities :"+ authorities);
 				UsernamePasswordAuthenticationToken authToken = 
 						new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
 				authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

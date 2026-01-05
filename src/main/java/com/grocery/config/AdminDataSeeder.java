@@ -22,32 +22,36 @@ public class AdminDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception{
-        //1. Define the Admin Email
-        String adminEmail = "support.admin@grocery.com";
-        //2. Check if already present in system
-        if (userRepository.findByEmail(adminEmail).isEmpty()){
-            User admin = new User();
-            //3. Set Admin Details
-            admin.setFullName("Grocery SuperAdmin");
-            admin.setEmail(adminEmail);
-            admin.setMobile("9875643186");
-            admin.setAddressLine("Pune Headquarters");
-            admin.setCity("Pune");
-            admin.setPinCode("412210");
-            admin.setAccountStatus(AccountStatus.ACTIVE);
-            //4. Critical Hash Password
-            admin.setPasswordHash(passwordEncoder.encode("supportadmin@123"));
-            //5. Assign Role
-            admin.setRoles(Collections.singleton(Role.ROLE_ADMIN));
-            //6. Save to DB
-            userRepository.save(admin);
-            System.out.println("---------------------------------------------");
-            System.out.println("ADMIN SEEDER: Default Admin User Created Successfully");
-            System.out.println("Email: " + adminEmail);
-            System.out.println("Password: supportadmin@123");
-            System.out.println("---------------------------------------------");
-        }else {
-            System.out.println("ADMIN SEEDER: Admin user already exists. Skipping.");
+        try {
+            //1. Define the Admin Email
+            String adminEmail = "support.admin@grocery.com";
+            //2. Check if already present in system
+            if (userRepository.findByEmail(adminEmail).isEmpty()) {
+                User admin = new User();
+                //3. Set Admin Details
+                admin.setFullName("Grocery SuperAdmin");
+                admin.setEmail(adminEmail);
+                admin.setMobile("9875643186");
+                admin.setAddressLine("Pune Headquarters");
+                admin.setCity("Pune");
+                admin.setPinCode("412210");
+                admin.setAccountStatus(AccountStatus.ACTIVE);
+                //4. Critical Hash Password
+                admin.setPasswordHash(passwordEncoder.encode("supportadmin@123"));
+                //5. Assign Role
+                admin.setRoles(Collections.singleton(Role.ROLE_ADMIN));
+                //6. Save to DB
+                userRepository.save(admin);
+                System.out.println("---------------------------------------------");
+                System.out.println("ADMIN SEEDER: Default Admin User Created Successfully");
+                System.out.println("Email: " + adminEmail);
+                System.out.println("Password: supportadmin@123");
+                System.out.println("---------------------------------------------");
+            } else {
+                System.out.println("ADMIN SEEDER: Admin user already exists. Skipping.");
+            }
+        } catch (Exception e) {
+            System.err.println("ADMIN SEEDER ERROR: Could not create admin user. "+e.getMessage());
         }
     }
 }

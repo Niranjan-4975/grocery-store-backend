@@ -2,6 +2,8 @@ package com.grocery.order.controller;
 
 import com.grocery.auth.User;
 import com.grocery.auth.UserRepository;
+import com.grocery.common.ApiResponse;
+import com.grocery.exception.ResourceNotFoundException;
 import com.grocery.order.Order;
 import com.grocery.order.dto.OrderRequest;
 import com.grocery.order.service.OrderService;
@@ -24,21 +26,23 @@ public class OrderController {
 
     // CUSTOMER: Place a new order
     @PostMapping("/place")
-    public ResponseEntity<?> placeOrder(
+    public ResponseEntity<ApiResponse<Order>> placeOrder(
             @RequestBody OrderRequest request,
             Authentication authentication){
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         Order order = orderService.placeOrder(request, user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(order);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Order placed successfully! ID: #"+order.getId(),order));
     }
 
     @GetMapping("/my-orders")
-    public ResponseEntity<List<Order>> getMyOrders(Authentication authentication){
+    public ResponseEntity<ApiResponse<List<Order>>> getMyOrders(Authentication authentication){
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-        return ResponseEntity.ok(orderService.getOrdersById(user.getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        List<Order> orders = orderService.getOrdersById(user.getId());
+        return ResponseEntity.ok(ApiResponse.success(null,orders));
     }
 }
