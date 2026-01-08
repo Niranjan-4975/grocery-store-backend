@@ -60,4 +60,15 @@ public class AuthController {
         );
         return ResponseEntity.ok(ApiResponse.success(null, data));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
+            @RequestHeader("user-payload") String token){
+        String email = jwtUtility.extractEmail(token);
+        User user = userService.getByEmail(email);
+        String newToken = jwtUtility.generateToken(user);
+        String roles = user.getRoles().toString();
+        AuthResponse response = new AuthResponse(newToken,roles,user.getEmail(),user.getFullName());
+        return ResponseEntity.ok(ApiResponse.success("Session extended!",response));
+    }
 }
