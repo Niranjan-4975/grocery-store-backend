@@ -20,25 +20,36 @@ public class JwtUtility {
 
 	
 	private final String SECRET = "my-super-secret-key-my-super-secret-key";
-	private final long EXPIRATION_TIME = 900000;
+    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
-	private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
-	
+    // 🕒 Expiry times (ms)
+    private final long ADMIN_EXPIRY = 900000; // 15 Mins
+    private final long CUSTOMER_EXPIRY = 604800000;
+
 	public String generateToken(User user) {
-
         //1. Convert Set<Role> enums to List<String>
         List<String> roleNames = user.getRoles().stream()
                 .map(Enum::name) // Correctly maps Role.ROLE_ADMIN to "ROLE_ADMIN"
                 .toList();
-
+        // ✅ Step 1: Check Role to set dynamic expiration
+        long currentExpiry = roleNames.contains("ROLE_ADMIN") ? ADMIN_EXPIRY: CUSTOMER_EXPIRY;
 		return Jwts.builder().setSubject(user.getEmail())
 				.claim("roles", roleNames)
 				.setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis()+ EXPIRATION_TIME))
+				.setExpiration(new Date(System.currentTimeMillis()+ currentExpiry))
 				.signWith(key, SignatureAlgorithm.HS256)
-				.compact();	
+				.compact();
 	}
-	
+
+    //2. Validate if token expired
+    public boolean isTokenExpired(String token){
+        try{
+            return getClaims(token).getExpiration().before(new Date());
+        }catch (Exception e){
+            return true;
+        }
+    }
+
 	private Claims getClaims(String token) {
 		return Jwts.parserBuilder()
 				.setSigningKey(key)
