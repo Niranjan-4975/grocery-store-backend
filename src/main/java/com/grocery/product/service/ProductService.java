@@ -1,6 +1,7 @@
 package com.grocery.product.service;
 
 import com.grocery.exception.ResourceNotFoundException;
+import com.grocery.user.WishlistRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @NoArgsConstructor
@@ -30,6 +33,8 @@ public class ProductService {
 	private  CategoryRepository categoryRepository;
     @Autowired
     private FileStorageService fileStorageService;
+    @Autowired
+    private WishlistRepository wishlistRepository;
 	
 	
 	// Add Product (Admin only)
@@ -107,11 +112,13 @@ public class ProductService {
 
     // List Products (Customer)
     // ➤ Get All Products with Search + Filter + Pagination
-    public Page<Product> listActiveProducts(String search, Long categoryId, Pageable pageable) {
+    public Page<Product> listActiveProducts(String search, Long categoryId, Pageable pageable, Long userId) {
     	
     	if (search == null) search = "";
     	if (categoryId != null && categoryId == 0L) categoryId = null;
-    	return productRepository.searchActiveProducts(search, categoryId, pageable);
+        Page<Product> page = productRepository.searchActiveProducts(search, categoryId, pageable);
+        markWishlisted(page.getContent(), userId);
+    	return page;
     }
 
     //List Products (Admin)
@@ -129,12 +136,26 @@ public class ProductService {
     }
 
     // ✅ Home page ke liye Featured Products (Customer Side)
-    public List<Product> getFeaturedProducts() {
-        return productRepository.findByIsFeaturedTrueAndStatus(Status.ACTIVE);
+    public List<Product> getFeaturedProducts(Long userId) {
+        List<Product> products = productRepository.findByIsFeaturedTrueAndStatus(Status.ACTIVE);
+        markWishlisted(products, userId);
+        return products;
     }
 
     // ✅ Home page main grid ke liye bina search filter ke list (Optional)
     public Page<Product> getPublicProducts(Pageable pageable) {
         return productRepository.findByStatus(Status.ACTIVE, pageable);
+    }
+
+    // ✅ Private Helper Method
+    private void markWishlisted(List<Product> products, Long userId) {
+        if (userId == null) return;
+        // Fetch all product IDs of an User
+        Set<Long> wishlistedIds = wishlistRepository.findByUserId(userId)
+                .stream()
+                .map(w -> w.getProduct().getId())
+                .collect(Collectors.toSet());
+        // Set flag to check each product
+        products.forEach(p -> p.setWishlisted(wishlistedIds.contains(p.getId())));
     }
 }

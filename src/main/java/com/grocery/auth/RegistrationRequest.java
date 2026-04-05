@@ -7,6 +7,10 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,13 +19,21 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RegistrationRequest {
-	
+
+    @NotBlank(message = "Full name is required")
 	private String fullName;
+    @Email(message = "Invalid email format")
+    @NotBlank(message = "Email is required")
 	private String email;
+    @Size(min = 8, message = "Password must be at least 6 characters")
 	private String password;
+    @Pattern(regexp = "^\\d{10}$", message = "Mobile must be 10 digits")
 	private String mobile;
+    @NotBlank(message = "Address is required")
 	private String addressLine;
+    @NotBlank(message = "City is required")
 	private String city;
+    @NotBlank(message = "Pin code is required")
 	private String pinCode;
 	private Set<String> roles;
 	

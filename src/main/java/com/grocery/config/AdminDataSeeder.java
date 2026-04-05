@@ -4,6 +4,7 @@ import com.grocery.auth.AccountStatus;
 import com.grocery.auth.Role;
 import com.grocery.auth.User;
 import com.grocery.auth.UserRepository;
+import com.grocery.user.entity.Address;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -28,13 +29,17 @@ public class AdminDataSeeder implements CommandLineRunner {
             //2. Check if already present in system
             if (userRepository.findByEmail(adminEmail).isEmpty()) {
                 User admin = new User();
+                Address adminAddress =  new Address();
                 //3. Set Admin Details
                 admin.setFullName("Grocery SuperAdmin");
                 admin.setEmail(adminEmail);
                 admin.setMobile("9875643186");
-                admin.setAddressLine("Pune Headquarters");
-                admin.setCity("Pune");
-                admin.setPinCode("412210");
+                adminAddress.setFlatHouseNo("Pune Headquarters");
+                adminAddress.setCity("Pune");
+                adminAddress.setZipCode("412210");
+                adminAddress.setAddressType("HOME");
+                adminAddress.setDefault(true);
+                adminAddress.setUser(admin);
                 admin.setAccountStatus(AccountStatus.ACTIVE);
                 //4. Critical Hash Password
                 admin.setPasswordHash(passwordEncoder.encode("supportadmin@123"));

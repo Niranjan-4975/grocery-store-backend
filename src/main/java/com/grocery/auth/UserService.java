@@ -1,28 +1,34 @@
 package com.grocery.auth;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import com.grocery.exception.ResourceNotFoundException;
 import com.grocery.exception.UnauthorizedAccessException;
 import com.grocery.exception.UserAlreadyExistsException;
+import com.grocery.user.entity.Address;
+import com.grocery.user.AddressRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.grocery.config.SecurityConfig;
 import com.grocery.user.dto.AdminCreateRequest;
 import com.grocery.user.dto.UpdateUserRequest;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final AddressRepository addressRepository;
 
-    public UserService(UserRepository userRepository, SecurityConfig securityConfig) {
+    public UserService(UserRepository userRepository,
+                       AddressRepository addressRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.addressRepository= addressRepository;
     }
 
     public User getByEmail(String email) {
@@ -30,7 +36,16 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
+    // UserService.java mein ek helper method
+    public Address getDefaultAddress(Long userId) {
+        return addressRepository.findByUserId(userId).stream()
+                .filter(Address::isDefault)
+                .findFirst()
+                .orElse(null);
+    }
+
     // create user by User self Registration
+    @Transactional
     public String register(RegistrationRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Email '"+ request.getEmail()+ "' is already in use");
@@ -43,15 +58,21 @@ public class UserService {
         user.setPasswordHash(hashedPassword);
         user.setFullName(request.getFullName());
         user.setMobile(request.getMobile());
-        user.setAddressLine(request.getAddressLine());
-        user.setCity(request.getCity());
-        user.setPinCode(request.getPinCode());
         user.setRoles(roles);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        Address address = new Address();
+        address.setFlatHouseNo(request.getAddressLine());
+        address.setCity(request.getCity());
+        address.setZipCode(request.getPinCode());
+        address.setAddressType("Home");
+        address.setDefault(true);
+        address.setUser(savedUser);
+        addressRepository.save(address);
         return "";
     }
 
     // create User by Admin
+    @Transactional
     public User createUserAsAdmin(AdminCreateRequest request, User currentAdmin) {
         //Only Admin Allowed
         if (!currentAdmin.getRoles().contains(Role.ROLE_ADMIN)) {
@@ -83,12 +104,17 @@ public class UserService {
         user.setPasswordHash(hashedPassword);
         user.setFullName(request.getFullName());
         user.setMobile(request.getMobile());
-        user.setAddressLine(request.getAddressLine());
-        user.setCity(request.getCity());
-        user.setPinCode(request.getPinCode());
         user.setRoles(roles);
-        System.out.println("User after setting values: "+ user);
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        Address address = new Address();
+        address.setFlatHouseNo(request.getAddressLine());
+        address.setCity(request.getCity());
+        address.setZipCode(request.getPinCode());
+        address.setAddressType("HOME");
+        address.setDefault(true);
+        address.setUser(savedUser);
+        addressRepository.save(address);
+        return savedUser;
     }
 
     // Get User by I'd for Admin
@@ -102,7 +128,7 @@ public class UserService {
         //default values
         if (city == null) city = "";
         if (search == null) search = "";
-        return userRepository.searchUsers(city, search, pageable);
+        return userRepository.searchUsers(search, pageable);
     }
 
     // check password common
@@ -111,6 +137,7 @@ public class UserService {
     }
 
     // Update for Admin and User both
+    @Transactional
     public User updateUser(Long id, UpdateUserRequest request, User current) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -124,9 +151,23 @@ public class UserService {
         // This logic runs for both Admin and Customer
         if (request.getFullName() != null) user.setFullName(request.getFullName());
         if (request.getMobile() != null) user.setMobile(request.getMobile());
-        if (request.getAddressLine() != null) user.setAddressLine(request.getAddressLine());
-        if (request.getCity() != null) user.setCity(request.getCity());
-        if (request.getPinCode() != null) user.setPinCode(request.getPinCode());
+        // 2. Address Updates (Address Table)
+        if (request.getCity() != null || request.getAddressLine() != null || request.getPinCode() != null) {
+            // Default address dhundo ya naya banao
+            List<Address> addresses = addressRepository.findByUserId(id);
+            Address defaultAddress = addresses.stream()
+                            .filter(Address::isDefault).findFirst().orElse(null);
+            if (defaultAddress == null){
+                defaultAddress = addresses.isEmpty() ? new Address() : addresses.get(0);
+            }
+            defaultAddress.setUser(user);
+            if (request.getCity() != null) defaultAddress.setCity(request.getCity());
+            if (request.getAddressLine() != null) defaultAddress.setFlatHouseNo(request.getAddressLine());
+            if (request.getPinCode() != null) defaultAddress.setZipCode(request.getPinCode());
+            defaultAddress.setDefault(true);
+            defaultAddress.setAddressType("HOME");
+            addressRepository.save(defaultAddress);
+        }
         // --- 5. RESTRICTED UPDATES (Admin Only) ---
         if (isAdmin) {
             if (request.getEmail() != null) user.setEmail(request.getEmail());

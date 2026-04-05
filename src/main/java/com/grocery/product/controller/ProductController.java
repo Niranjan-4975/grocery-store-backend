@@ -1,17 +1,15 @@
 package com.grocery.product.controller;
 
+import com.grocery.auth.User;
+import com.grocery.auth.UserService;
 import com.grocery.common.ApiResponse;
 import com.grocery.product.Product;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import com.grocery.common.JwtUtility;
 import com.grocery.product.service.ProductService;
 
 import java.util.List;
@@ -21,27 +19,37 @@ import java.util.List;
 public class ProductController {
 
 	private final ProductService productService;
-	public ProductController(ProductService productService) {
+    private final UserService userService;
+	public ProductController(ProductService productService, UserService userService) {
         this.productService = productService;
+        this.userService= userService;
 	}
 
 
     // 🌟 1. GET FEATURED PRODUCTS (Home Page Slider)
     @GetMapping("/featured")
-    public ResponseEntity<ApiResponse<List<Product>>> getFeaturedProducts() {
-        List<Product> featured = productService.getFeaturedProducts();
+    public ResponseEntity<ApiResponse<List<Product>>> getFeaturedProducts(Authentication authentication) {
+        Long userId = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            User user = userService.getByEmail(authentication.getName());
+            userId = user.getId();
+        }
+        List<Product> featured = productService.getFeaturedProducts(userId);
         return ResponseEntity.ok(ApiResponse.success(null, featured));
     }
 
 	// GET ACTIVE PRODUCTS (CUSTOMER)
 	@GetMapping("/getProducts")
 	public ResponseEntity<ApiResponse<Page<Product>>> getActiveProducts(
-            @RequestParam(defaultValue = "") String search,
+            @RequestParam(name = "search", defaultValue = "") String search,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size) {
-		Pageable pageable = PageRequest.of(page, size);
-        Page<Product> products = productService.listActiveProducts(search, categoryId, pageable);
+            Pageable pageable, Authentication authentication) {
+        Long userId = null;
+        if (authentication !=null && authentication.isAuthenticated()){
+            User user = userService.getByEmail(authentication.getName()); // AppKit existing logic
+            userId = user.getId();
+        }
+        Page<Product> products = productService.listActiveProducts(search, categoryId, pageable, userId);
 		return ResponseEntity.ok(ApiResponse.success(null,products));
 	}
 

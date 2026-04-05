@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/products/**", "/api/categories/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/ws-grocery/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated())
                 //tell spring boot not create any session (we use jwt instead)

@@ -69,6 +69,6 @@ public class AuthController {
         String newToken = jwtUtility.generateToken(user);
         String roles = user.getRoles().toString();
         AuthResponse response = new AuthResponse(newToken,roles,user.getEmail(),user.getFullName());
-        return ResponseEntity.ok(ApiResponse.success("Session extended!",response));
+        return ResponseEntity.ok(ApiResponse.success("Your Session extended!",response));
     }
 }
