@@ -46,6 +46,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/products/**", "/api/categories/**").permitAll()
                         .requestMatchers("/images/**").permitAll()
+                        .requestMatchers("/ws-grocery/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated())
                 //tell spring boot not create any session (we use jwt instead)
@@ -114,7 +115,7 @@ public class SecurityConfig {
         multipartFilter.setMultipartResolverBeanName("multipartResolver");
         // 2. Register the filter and set a very low order number for absolute priority
         FilterRegistrationBean<MultipartFilter> registration = new FilterRegistrationBean<>(multipartFilter);
-        registration.addUrlPatterns("/api/admin/products/*"); // Apply to the admin products path
+        registration.addUrlPatterns("/api/admin/products/*", "/api/admin/products/images/*", "/api/admin/products/images/product/*");
         // CRITICAL: Set the order to the lowest possible value (highest priority)
         // -100 or less ensures it runs before Spring Security's FilterChainProxy.
         registration.setOrder(Integer.MIN_VALUE);

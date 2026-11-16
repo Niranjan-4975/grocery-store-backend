@@ -14,12 +14,12 @@ import com.grocery.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class OrderService {
@@ -30,6 +30,8 @@ public class OrderService {
     private OrderItemRepository orderItemRepository;
     @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
 
     // CUSTOMER: Place an order
@@ -46,6 +48,8 @@ public class OrderService {
         double totalAmount = 0;
         List<OrderItem> orderItems = new ArrayList<>();
 
+        List<Map<String, Object>> stockUpdate = new ArrayList<>();
+
         //1. Process each item in the request
         for (OrderRequest.OrderItemRequest itemReq : request.getItems()) {
             Product product = productRepository.findById(itemReq.getProductId())
@@ -57,6 +61,13 @@ public class OrderService {
             }
             product.setStock(product.getStock() - itemReq.getQuantity());
             productRepository.save(product);
+
+            // ✅ 2. Naya stock data collect kijiye
+            Map<String, Object> update = new HashMap<>();
+            update.put("productId", product.getId());
+            update.put("newStock", product.getStock());
+            stockUpdate.add(update);
+
             //3. Create OrderItem (Snap of price/name)
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -72,7 +83,7 @@ public class OrderService {
         //4. Save order first to generate ID, then save items
         Order savedOrder = orderRepository.save(order);
         orderItemRepository.saveAll(orderItems);
-
+        messagingTemplate.convertAndSend("/topic/stock", stockUpdate);
         return savedOrder;
     }
 
