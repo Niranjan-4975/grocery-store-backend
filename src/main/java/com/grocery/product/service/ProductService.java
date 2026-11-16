@@ -55,8 +55,8 @@ public class ProductService {
         // ✅ Mapping isFeatured from request (Make sure to add this in DTO later)
         product.setFeatured(request.isFeatured());
 
-        String imageUrl = null;
-        if (file !=null && !file.isEmpty()){
+        String imageUrl = request.getImageUrl();
+        if (file != null && !file.isEmpty()){
             imageUrl = fileStorageService.saveFile(file);
         }
         product.setImageUrl(imageUrl);
@@ -73,11 +73,14 @@ public class ProductService {
         String imageUrl = product.getImageUrl();
         // 1. If a new file is uploaded, process it
         if (file != null && !file.isEmpty()) {
+            if (imageUrl != null) {
+                fileStorageService.deleteFile(imageUrl);
+            }
             imageUrl = fileStorageService.saveFile(file);
         }
-        // 2. If the request explicitly removes the image (by setting imageUrl to null)
-        else if (request.getImageUrl() == null) {
-            imageUrl = null; // Clear image if requested
+        // 2. If an image URL string is explicitly provided in the update request
+        else if (request.getImageUrl() != null) {
+            imageUrl = request.getImageUrl();
         }
         // Admin can update all fields
         if (request.getName() != null) product.setName(request.getName());
@@ -85,7 +88,7 @@ public class ProductService {
         if (request.getPrice() != null) product.setPrice(request.getPrice());
         if (request.getStock() != null) product.setStock(request.getStock());
         if (request.getStatus() != null) product.setStatus(Status.valueOf(request.getStatus()));
-        if (request.getImageUrl() != null) product.setImageUrl(imageUrl);
+        product.setImageUrl(imageUrl);
         product.setFeatured(request.isFeatured());
 
         if (request.getCategoryId() != null) {
@@ -98,10 +101,12 @@ public class ProductService {
 
     // Delete Product
     public void deleteProduct(Long id) {
-    	if (!productRepository.existsById(id)) {
-    		throw new ResourceNotFoundException("Cannot delete: Product not found with ID: " + id);
-    	}
-    	productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cannot delete: Product not found with ID: " + id));
+        if (product.getImageUrl() != null) {
+            fileStorageService.deleteFile(product.getImageUrl());
+        }
+        productRepository.delete(product);
     }
 
     // ➤ Get Single Product by Id 
@@ -129,10 +134,13 @@ public class ProductService {
     }
 
     public Product updateImage(Long id, String imageUrl) {
-    	
-    	Product product = productRepository.getReferenceById(id);
-    	product.setImageUrl(imageUrl);
-    	return productRepository.save(product);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with ID: " + id));
+        if (product.getImageUrl() != null && !product.getImageUrl().equals(imageUrl)) {
+            fileStorageService.deleteFile(product.getImageUrl());
+        }
+        product.setImageUrl(imageUrl);
+        return productRepository.save(product);
     }
 
     // ✅ Home page ke liye Featured Products (Customer Side)
