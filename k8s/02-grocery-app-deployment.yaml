@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grocery-backend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grocery-backend
+  template:
+    metadata:
+      labels:
+        app: grocery-backend
+    spec:
+      containers:
+        - name: backend
+          image: grocery-backend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              memory: "768Mi"
+          envFrom:
+            - configMapRef:
+                name: grocery-config
+            - secretRef:
+                name: grocery-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: grocery-backend
+  ports:
+    - port: 8080
+      targetPort: 8080

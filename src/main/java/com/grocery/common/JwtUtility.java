@@ -1,9 +1,11 @@
 package com.grocery.common;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.grocery.auth.User;
@@ -18,13 +20,15 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtility {
 
-	
-	private final String SECRET = "my-super-secret-key-my-super-secret-key";
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
+    private final Key key;
 
     // 🕒 Expiry times (ms)
     private final long ADMIN_EXPIRY = 900000; // 15 Mins
     private final long CUSTOMER_EXPIRY = 604800000;
+
+    public JwtUtility(@Value("${jwt.secret:dev-only-my-super-secret-key-my-super-secret-key}") String secret){
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
 	public String generateToken(User user) {
         //1. Convert Set<Role> enums to List<String>
