@@ -2,7 +2,9 @@
 
 A full-featured **REST API backend** for an online Grocery Store application, built with **Spring Boot 3.5** and **Java 17**. This backend powers both the **Customer-facing storefront** and the **Admin dashboard**, providing authentication, product catalog, order management, reporting, and real-time notifications.
 
----
+## Live Application
+- Register your self as consumer and explore
+  **Storefront URL:** https://hp-headless.tail53b0ae.ts.net
 
 ## 📋 Table of Contents
 
