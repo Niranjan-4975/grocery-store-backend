@@ -1,0 +1,12 @@
+apiVersion: 1
+kind: ConfigMap
+metadata:
+  name: grocery-config
+  namespace: default
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-svc:5432/grocery_db"
+  CORS_ALLOWED_ORIGINS: "https://hp-headless.tail53b0ae.ts.net,http://hp-headless.tail53b0ae.ts.net:30085,http://100.65.218.69:30085"
+  DDL_AUTO: "update"
+  FLYWAY_ENABLED: "false"
+  SHOW_SQL: "false"
